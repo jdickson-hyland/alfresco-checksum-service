@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+          http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+    <bean id="checksumService" class="org.hyland.checksum.ChecksumServiceImpl">
+        <property name="nodeService" ref="NodeService"/>
+        <property name="contentService" ref="ContentService"/>
+        <property name="searchService" ref="SearchService"/>
+        <property name="namespaceService" ref="NamespaceService"/>
+        <property name="algorithm" value="${checksum.algorithm:SHA-256}"/>
+    </bean>
+
+    <bean id="checksumBehavior" class="org.hyland.checksum.ChecksumBehavior" init-method="init">
+        <property name="policyComponent" ref="policyComponent"/>
+        <property name="checksumService" ref="checksumService"/>
+        <property name="nodeService" ref="NodeService"/>
+        <property name="rejectDuplicates" value="${checksum.duplicates.reject:false}"/>
+    </bean>
+
+    <bean id="webscript.org.hyland.checksum.duplicates.get"
+          class="org.hyland.checksum.DuplicatesWebScript"
+          parent="webscript">
+        <property name="checksumService" ref="checksumService"/>
+        <property name="nodeService" ref="NodeService"/>
+    </bean>
+
+    <bean id="webscript.org.hyland.checksum.node-duplicates.get"
+          class="org.hyland.checksum.NodeDuplicatesWebScript"
+          parent="webscript">
+        <property name="checksumService" ref="checksumService"/>
+        <property name="nodeService" ref="NodeService"/>
+    </bean>
+
+    <bean id="webscript.org.hyland.checksum.validate.get"
+          class="org.hyland.checksum.ValidateWebScript"
+          parent="webscript">
+        <property name="checksumService" ref="checksumService"/>
+        <property name="nodeService" ref="NodeService"/>
+    </bean>
+
+</beans>

@@ -1,0 +1,7 @@
+<webscript>
+    <shortname>Validate Checksum</shortname>
+    <description>Recomputes the digest from current content and compares it to the stored checksum</description>
+    <url>/checksum/node/{store_type}/{store_id}/{id}/validate</url>
+    <authentication>user</authentication>
+    <format default="json">argument</format>
+</webscript>

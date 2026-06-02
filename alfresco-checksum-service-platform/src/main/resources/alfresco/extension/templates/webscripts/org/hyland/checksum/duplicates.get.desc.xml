@@ -1,0 +1,7 @@
+<webscript>
+    <shortname>Checksum Duplicates</shortname>
+    <description>Returns all duplicate content groups in the repository, grouped by checksum</description>
+    <url>/checksum/duplicates</url>
+    <authentication>user</authentication>
+    <format default="json">argument</format>
+</webscript>

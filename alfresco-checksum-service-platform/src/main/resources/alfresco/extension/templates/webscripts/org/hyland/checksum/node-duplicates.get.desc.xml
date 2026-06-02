@@ -1,0 +1,7 @@
+<webscript>
+    <shortname>Node Checksum Duplicates</shortname>
+    <description>Returns all nodes that share the same content checksum as the specified node</description>
+    <url>/checksum/node/{store_type}/{store_id}/{id}/duplicates</url>
+    <authentication>user</authentication>
+    <format default="json">argument</format>
+</webscript>

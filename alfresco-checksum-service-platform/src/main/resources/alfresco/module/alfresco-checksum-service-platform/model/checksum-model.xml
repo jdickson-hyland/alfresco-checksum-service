@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model name="cs:checksumModel" xmlns="http://www.alfresco.org/model/dictionary/1.0">
+
+    <description>Hyland Checksum Content Model</description>
+    <author>Hyland</author>
+    <version>1.0</version>
+
+    <imports>
+        <import uri="http://www.alfresco.org/model/dictionary/1.0" prefix="d"/>
+        <import uri="http://www.alfresco.org/model/content/1.0" prefix="cm"/>
+    </imports>
+
+    <namespaces>
+        <namespace uri="http://www.hyland.org/model/checksum/1.0" prefix="cs"/>
+    </namespaces>
+
+    <aspects>
+        <aspect name="cs:checksumable">
+            <title>Checksumable</title>
+            <description>Applied to content nodes to store a computed digest</description>
+            <properties>
+                <property name="cs:checksum">
+                    <title>Checksum</title>
+                    <type>d:text</type>
+                    <index enabled="true">
+                        <atomic>true</atomic>
+                        <stored>true</stored>
+                        <tokenised>false</tokenised>
+                    </index>
+                </property>
+                <property name="cs:checksumAlgorithm">
+                    <title>Checksum Algorithm</title>
+                    <type>d:text</type>
+                </property>
+                <property name="cs:checksumLastUpdated">
+                    <title>Checksum Last Updated</title>
+                    <type>d:datetime</type>
+                </property>
+            </properties>
+        </aspect>
+    </aspects>
+
+</model>

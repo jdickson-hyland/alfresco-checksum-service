@@ -1,0 +1,175 @@
+<!-- Share configuration for the alfresco-checksum-service module -->
+<alfresco-config>
+
+    <!--================================================================================================================
+        Make custom types and aspects visible in "Change Type" and "Manage Aspects" actions.
+    =============================================================================================================-->
+    <config evaluator="string-compare" condition="DocumentLibrary">
+        <aspects>
+            <visible>
+                <aspect name="acme:securityClassified"/>
+                <aspect name="cs:checksumable"/>
+            </visible>
+            <addable>
+                <!-- cs:checksumable is applied automatically by the behavior; not user-addable -->
+                <aspect name="acme:securityClassified"/>
+            </addable>
+            <removeable>
+                <aspect name="acme:securityClassified"/>
+            </removeable>
+        </aspects>
+        <types>
+            <type name="cm:content">
+                <subtype name="acme:document"/>
+            </type>
+        </types>
+    </config>
+
+    <!--================================================================================================================
+        Advanced Search Forms for types
+    =============================================================================================================-->
+    <config evaluator="string-compare" condition="AdvancedSearch" replace="true">
+        <advanced-search>
+            <forms>
+                <form labelId="search.form.label.cm_content" descriptionId="search.form.desc.cm_content">cm:content</form>
+                <form labelId="search.form.label.cm_folder" descriptionId="search.form.desc.cm_folder">cm:folder</form>
+                <form labelId="form.label.advancedsearch.acmeDocument"
+                      descriptionId="form.description.advancedsearch.acmeDocument">acme:document</form>
+            </forms>
+        </advanced-search>
+    </config>
+
+    <!--================================================================================================================
+        cs:checksumable aspect — read-only properties shown in document details
+    =============================================================================================================-->
+    <config evaluator="aspect" condition="cs:checksumable">
+        <forms>
+            <form>
+                <field-visibility>
+                    <show id="cs:checksum" for-mode="view"/>
+                    <show id="cs:checksumAlgorithm" for-mode="view"/>
+                    <show id="cs:checksumLastUpdated" for-mode="view"/>
+                </field-visibility>
+                <appearance>
+                    <set id="checksumSet" appearance="bordered-panel" label-id="form.set.label.cs.checksumable"/>
+                    <field id="cs:checksum" label-id="form.field.label.cs.checksum"
+                           set="checksumSet" read-only="true"/>
+                    <field id="cs:checksumAlgorithm" label-id="form.field.label.cs.checksumAlgorithm"
+                           set="checksumSet" read-only="true"/>
+                    <field id="cs:checksumLastUpdated" label-id="form.field.label.cs.checksumLastUpdated"
+                           set="checksumSet" read-only="true"/>
+                </appearance>
+            </form>
+        </forms>
+    </config>
+
+    <!--================================================================================================================
+        View and Edit forms for acme:document
+    =============================================================================================================-->
+    <config evaluator="node-type" condition="acme:document">
+        <forms>
+            <form>
+                <field-visibility>
+                    <show id="cm:name"/>
+                    <show id="cm:title" force="true"/>
+                    <show id="cm:description" force="true"/>
+                    <show id="mimetype"/>
+                    <show id="cm:author" force="true"/>
+                    <show id="size" for-mode="view"/>
+                    <show id="cm:creator" for-mode="view"/>
+                    <show id="cm:created" for-mode="view"/>
+                    <show id="cm:modifier" for-mode="view"/>
+                    <show id="cm:modified" for-mode="view"/>
+                    <show id="cm:taggable" for-mode="edit" force="true"/>
+                    <show id="cm:categories"/>
+                    <show id="acme:documentId" force="true"/>
+                    <show id="acme:securityClassification"/>
+                </field-visibility>
+                <appearance>
+                    <field id="cm:name">
+                        <control><control-param name="maxLength">255</control-param></control>
+                    </field>
+                    <field id="cm:title">
+                        <control template="/org/alfresco/components/form/controls/textfield.ftl"/>
+                    </field>
+                    <field id="cm:description">
+                        <control><control-param name="activateLinks">true</control-param></control>
+                    </field>
+                    <set id="cm:content2cols" template="/org/alfresco/components/form/2-column-set.ftl"/>
+                    <field set="cm:content2cols" id="mimetype">
+                        <control template="/org/alfresco/components/form/controls/mimetype.ftl"/>
+                    </field>
+                    <field set="cm:content2cols" id="size">
+                        <control template="/org/alfresco/components/form/controls/size.ftl"/>
+                    </field>
+                    <field set="cm:content2cols" id="cm:creator"/>
+                    <field set="cm:content2cols" id="cm:created"/>
+                    <field set="cm:content2cols" id="cm:modifier"/>
+                    <field set="cm:content2cols" id="cm:modified"/>
+                    <field id="cm:taggable">
+                        <control>
+                            <control-param name="compactMode">true</control-param>
+                            <control-param name="params">aspect=cm:taggable</control-param>
+                            <control-param name="createNewItemUri">/api/tag/workspace/SpacesStore</control-param>
+                            <control-param name="createNewItemIcon">tag</control-param>
+                        </control>
+                    </field>
+                    <field id="cm:categories">
+                        <control><control-param name="compactMode">true</control-param></control>
+                    </field>
+                    <set id="acmeDocSet" appearance="bordered-panel" label-id="form.set.label.acme.document"/>
+                    <field id="acme:documentId" label-id="form.field.label.acme.documentId" set="acmeDocSet">
+                        <control template="/org/alfresco/components/form/controls/textfield.ftl"/>
+                    </field>
+                    <field id="acme:securityClassification" label-id="form.field.label.acme.securityClassification"
+                           set="acmeDocSet"/>
+                </appearance>
+            </form>
+        </forms>
+    </config>
+
+    <config evaluator="model-type" condition="acme:document">
+        <forms>
+            <form>
+                <field-visibility>
+                    <show id="cm:name"/>
+                    <show id="cm:content" force="true"/>
+                    <show id="cm:title" force="true"/>
+                    <show id="cm:description" force="true"/>
+                    <show id="mimetype"/>
+                    <show id="app:editInline" force="true"/>
+                    <show id="acme:documentId" force="true"/>
+                    <show id="acme:securityClassification"/>
+                </field-visibility>
+                <appearance>
+                    <field id="cm:name">
+                        <control><control-param name="maxLength">255</control-param></control>
+                    </field>
+                    <field id="cm:title">
+                        <control template="/org/alfresco/components/form/controls/textfield.ftl"/>
+                    </field>
+                    <field id="cm:content" label-id="">
+                        <control><control-param name="editorAppearance">explorer</control-param></control>
+                    </field>
+                    <field id="mimetype">
+                        <control template="/org/alfresco/components/form/controls/hidden.ftl">
+                            <control-param name="contextProperty">mimeType</control-param>
+                        </control>
+                    </field>
+                    <field id="app:editInline">
+                        <control template="/org/alfresco/components/form/controls/hidden.ftl">
+                            <control-param name="contextProperty">editInline</control-param>
+                        </control>
+                    </field>
+                    <set id="acmeDocSet" appearance="bordered-panel" label-id="form.set.label.acme.document"/>
+                    <field id="acme:documentId" label-id="form.field.label.acme.documentId" set="acmeDocSet">
+                        <control template="/org/alfresco/components/form/controls/textfield.ftl"/>
+                    </field>
+                    <field id="acme:securityClassification" label-id="form.field.label.acme.securityClassification"
+                           set="acmeDocSet"/>
+                </appearance>
+            </form>
+        </forms>
+    </config>
+
+</alfresco-config>

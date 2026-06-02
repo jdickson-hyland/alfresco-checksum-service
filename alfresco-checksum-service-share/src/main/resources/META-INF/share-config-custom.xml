@@ -1,0 +1,4 @@
+<!-- Module-specific Share configuration has been moved to
+     alfresco/web-extension/share-config-checksum-service.xml,
+     loaded explicitly via the webframework.configsource bean override. -->
+<alfresco-config/>
