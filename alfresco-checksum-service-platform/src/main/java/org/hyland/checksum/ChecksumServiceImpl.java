@@ -11,7 +11,6 @@ import org.alfresco.service.cmr.search.ResultSet;
 import org.alfresco.service.cmr.search.SearchParameters;
 import org.alfresco.service.cmr.search.SearchService;
 import org.alfresco.service.cmr.search.QueryConsistency;
-import org.alfresco.service.namespace.NamespaceService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -26,6 +25,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 public class ChecksumServiceImpl implements ChecksumService {
 
@@ -36,7 +36,7 @@ public class ChecksumServiceImpl implements ChecksumService {
     private NodeService nodeService;
     private ContentService contentService;
     private SearchService searchService;
-    private NamespaceService namespaceService;
+    private Properties globalProperties;
     private String algorithm;
 
     public void setNodeService(NodeService nodeService) {
@@ -51,12 +51,12 @@ public class ChecksumServiceImpl implements ChecksumService {
         this.searchService = searchService;
     }
 
-    public void setNamespaceService(NamespaceService namespaceService) {
-        this.namespaceService = namespaceService;
+    public void setGlobalProperties(Properties globalProperties) {
+        this.globalProperties = globalProperties;
     }
 
-    public void setAlgorithm(String algorithm) {
-        this.algorithm = algorithm;
+    public void init() {
+        algorithm = globalProperties.getProperty("checksum.algorithm", "SHA-256");
     }
 
     @Override
@@ -118,17 +118,13 @@ public class ChecksumServiceImpl implements ChecksumService {
             return new ArrayList<>();
         }
 
-        // Escape single quotes to prevent CMIS injection (checksum is hex so this is defensive only)
+        // Checksum is hex so injection is impossible; escaping is purely defensive
         String safeChecksum = checksum.replace("'", "\\'");
-        String query =
-            "SELECT d.cmis:objectId " +
-            "FROM cmis:document d " +
-            "JOIN cs:checksumable cs ON d.cmis:objectId = cs.cmis:objectId " +
-            "WHERE cs.cs:checksum = '" + safeChecksum + "'";
+        String query = "SELECT cs.cmis:objectId FROM cs:checksumable cs WHERE cs.cs:checksum = '" + safeChecksum + "'";
 
         ResultSet results = null;
         try {
-            results = executeQuery(query, MAX_SEARCH_ITEMS);
+            results = executeQuery(query, SearchService.LANGUAGE_CMIS_ALFRESCO, MAX_SEARCH_ITEMS);
             List<NodeRef> duplicates = new ArrayList<>();
             for (NodeRef found : results.getNodeRefs()) {
                 if (!found.equals(nodeRef)) {
@@ -143,14 +139,11 @@ public class ChecksumServiceImpl implements ChecksumService {
 
     @Override
     public Map<String, List<NodeRef>> findAllDuplicates() {
-        String query =
-            "SELECT d.cmis:objectId " +
-            "FROM cmis:document d " +
-            "JOIN cs:checksumable cs ON d.cmis:objectId = cs.cmis:objectId";
+        String query = "SELECT cs.cmis:objectId FROM cs:checksumable cs";
 
         ResultSet results = null;
         try {
-            results = executeQuery(query, MAX_SEARCH_ITEMS);
+            results = executeQuery(query, SearchService.LANGUAGE_CMIS_ALFRESCO, MAX_SEARCH_ITEMS);
             Map<String, List<NodeRef>> grouped = new LinkedHashMap<>();
             for (NodeRef found : results.getNodeRefs()) {
                 String checksum = (String) nodeService.getProperty(found, ChecksumModel.PROP_CHECKSUM);
@@ -176,10 +169,10 @@ public class ChecksumServiceImpl implements ChecksumService {
         return stored.equals(computed);
     }
 
-    private ResultSet executeQuery(String query, int maxItems) {
+    private ResultSet executeQuery(String query, String language, int maxItems) {
         SearchParameters params = new SearchParameters();
         params.addStore(StoreRef.STORE_REF_WORKSPACE_SPACESSTORE);
-        params.setLanguage(SearchService.LANGUAGE_CMIS_ALFRESCO);
+        params.setLanguage(language);
         params.setQuery(query);
         params.setQueryConsistency(QueryConsistency.TRANSACTIONAL);
         params.setMaxItems(maxItems);

@@ -17,6 +17,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -45,11 +46,15 @@ public class ChecksumServiceImplTest {
         contentService = Mockito.mock(ContentService.class);
         searchService = Mockito.mock(SearchService.class);
 
+        Properties props = new Properties();
+        props.setProperty("checksum.algorithm", "SHA-256");
+
         service = new ChecksumServiceImpl();
         service.setNodeService(nodeService);
         service.setContentService(contentService);
         service.setSearchService(searchService);
-        service.setAlgorithm("SHA-256");
+        service.setGlobalProperties(props);
+        service.init();
 
         nodeRef = new NodeRef(StoreRef.STORE_REF_WORKSPACE_SPACESSTORE, "test-node-id");
     }

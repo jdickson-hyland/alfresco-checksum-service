@@ -70,7 +70,23 @@ Spring context is bootstrapped from `module-context.xml`, which imports files in
 
 Bean IDs for web scripts must follow the convention `webscript.<package>.<name>.<httpmethod>` and extend `webscript` parent bean.
 
-**Spring property placeholders:** Module properties in `alfresco/module/{id}/alfresco-global.properties` (inside the JAR) are not reliably loaded by Spring's `PropertyPlaceholderConfigurer`. Always use the `:defaultValue` syntax in Spring XML (e.g., `${checksum.algorithm:SHA-256}`) AND add the properties to `alfresco-checksum-service-platform-docker/src/main/docker/alfresco-global.properties`, which is the file Spring actually loads in the Docker container.
+**Spring property placeholders:** Do NOT rely on `${property:default}` placeholders in Spring XML for custom module properties in ACS 25.2.0. Even when `alfresco-global.properties` is correctly placed in `shared/classes/` inside the Docker image, Alfresco's `PropertyPlaceholderConfigurer` does not reliably resolve custom module properties — the placeholder always falls through to its default value. The reliable pattern is to inject the `global-properties` Spring bean (which IS always populated from `alfresco-global.properties`) and read properties programmatically in an `init()` method:
+
+```java
+private Properties globalProperties;
+public void setGlobalProperties(Properties globalProperties) { this.globalProperties = globalProperties; }
+public void init() {
+    this.myProp = Boolean.parseBoolean(globalProperties.getProperty("my.property", "false"));
+}
+```
+
+```xml
+<bean id="myBean" class="..." init-method="init">
+    <property name="globalProperties" ref="global-properties"/>
+</bean>
+```
+
+Properties still need to be declared in `alfresco-checksum-service-platform-docker/src/main/docker/alfresco-global.properties`. Changes to that file require `./run.sh build_start` (not `reload_acs`) since it is baked into the Docker image, not the JAR.
 
 ### Web Scripts
 
@@ -84,7 +100,24 @@ Web scripts live in `src/main/resources/alfresco/extension/templates/webscripts/
 
 **Always use `TRANSACTION_COMMIT` (not `EVERY_EVENT`) for behaviors that set node properties.** Alfresco's metadata extraction pipeline (`AbstractMappingMetadataExtracter`) runs mid-transaction after content is written and calls `NodeService.setProperties()` with a map of `cm:*` properties. This wipes any aspect properties (e.g., `cs:checksum`) that were set during an `EVERY_EVENT` behavior because they are not included in that map. `TRANSACTION_COMMIT` fires in `beforeCommit()` after all pipeline operations have finished, so properties set there are the final values in the transaction. Throwing from `TRANSACTION_COMMIT` still rolls back the transaction (useful for duplicate rejection).
 
-**`CMIS` queries for database-only searches:** Use `SearchService.LANGUAGE_CMIS_ALFRESCO` with `QueryConsistency.TRANSACTIONAL`. The `QueryConsistency` class is at `org.alfresco.service.cmr.search.QueryConsistency` (not `org.alfresco.repo.search.impl.querymodel`).
+**Search queries for custom aspect properties:** Use `SearchService.LANGUAGE_CMIS_ALFRESCO` with `QueryConsistency.TRANSACTIONAL`, querying directly `FROM` the secondary type — do not use a `JOIN`. This produces a pure DB query with no Solr dependency:
+
+```java
+// Find by property value
+"SELECT cs.cmis:objectId FROM cs:checksumable cs WHERE cs.cs:checksum = '" + safeValue + "'"
+
+// Find all nodes with the aspect
+"SELECT cs.cmis:objectId FROM cs:checksumable cs"
+```
+
+What does NOT work in ACS 25.2.0:
+- `LANGUAGE_CMIS_ALFRESCO` + `TRANSACTIONAL` + `JOIN cs:checksumable ON ...` → returns empty results silently (join on custom secondary type unsupported by DB engine)
+- `LANGUAGE_FTS_ALFRESCO` + `TRANSACTIONAL` → throws `05030046 Analysis mode not supported for DB DEFAULT` for any query using `TYPE:` or `@property:"value"` syntax
+- `LANGUAGE_FTS_ALFRESCO` + `TRANSACTIONAL_IF_POSSIBLE` → works but falls back to Solr (not a pure DB query)
+
+The `QueryConsistency` class is at `org.alfresco.service.cmr.search.QueryConsistency`.
+
+**Rejecting uploads gracefully from behaviors:** Throw `org.springframework.extensions.webscripts.WebScriptException(409, message)` instead of `AlfrescoRuntimeException`. `JavaBehaviour.execute()` re-throws `RuntimeException` subclasses directly without wrapping, so `WebScriptException` reaches `AbstractRuntime` unwrapped and is handled as a proper HTTP 409 response with no ERROR-level log entry. Throwing `AlfrescoRuntimeException` produces the noisy `05030041 Failed to execute transaction-level behaviour` ERROR.
 
 ### Share UI Configuration
 

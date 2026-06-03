@@ -1,7 +1,7 @@
 package org.hyland.checksum;
 
-import org.alfresco.error.AlfrescoRuntimeException;
 import org.alfresco.model.ContentModel;
+import org.springframework.extensions.webscripts.WebScriptException;
 import org.alfresco.repo.content.ContentServicePolicies;
 import org.alfresco.repo.policy.Behaviour;
 import org.alfresco.repo.policy.JavaBehaviour;
@@ -13,6 +13,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.util.List;
+import java.util.Properties;
 
 public class ChecksumBehavior implements ContentServicePolicies.OnContentUpdatePolicy {
 
@@ -21,6 +22,7 @@ public class ChecksumBehavior implements ContentServicePolicies.OnContentUpdateP
     private PolicyComponent policyComponent;
     private ChecksumService checksumService;
     private NodeService nodeService;
+    private Properties globalProperties;
     private boolean rejectDuplicates;
 
     public void setPolicyComponent(PolicyComponent policyComponent) {
@@ -35,11 +37,14 @@ public class ChecksumBehavior implements ContentServicePolicies.OnContentUpdateP
         this.nodeService = nodeService;
     }
 
-    public void setRejectDuplicates(boolean rejectDuplicates) {
-        this.rejectDuplicates = rejectDuplicates;
+    public void setGlobalProperties(Properties globalProperties) {
+        this.globalProperties = globalProperties;
     }
 
     public void init() {
+        rejectDuplicates = Boolean.parseBoolean(
+            globalProperties.getProperty("checksum.duplicates.reject", "false")
+        );
         policyComponent.bindClassBehaviour(
             ContentServicePolicies.OnContentUpdatePolicy.QNAME,
             ContentModel.TYPE_CONTENT,
@@ -70,11 +75,9 @@ public class ChecksumBehavior implements ContentServicePolicies.OnContentUpdateP
             List<NodeRef> duplicates = checksumService.findDuplicates(nodeRef);
             if (!duplicates.isEmpty()) {
                 logger.info("Duplicate content detected for node " + nodeRef + ": " + duplicates);
-                throw new AlfrescoRuntimeException(
+                throw new WebScriptException(409,
                     "Duplicate content detected. Node " + nodeRef +
-                    " has the same content as: " + duplicates +
-                    ". Upload rejected because checksum.duplicates.reject=true."
-                );
+                    " has the same content as: " + duplicates);
             }
         }
     }
